@@ -1,9 +1,16 @@
+
 #include <iostream>
 #include <cstdlib>
 using namespace std;
 
 // Global array representing the game board
 char board[9];
+
+// Global variables for game statistics
+int gamesPlayed = 0;
+int playerXWins = 0;
+int playerOWins = 0;
+int draws = 0;
 
 // Function prototypes
 void initializeBoard();
@@ -12,6 +19,7 @@ void makeMove(char player);
 bool checkWinner(char player);
 bool checkDraw();
 void playGame();
+void displayStatistics();
 
 int main()
 {
@@ -27,6 +35,9 @@ int main()
     } while (choice == 'Y' || choice == 'y');
 
     cout << "\nThank you for playing Tic-Tac-Toe!\n";
+
+    // Display final game statistics
+    displayStatistics();
 
     return 0;
 }
@@ -132,12 +143,26 @@ bool checkDraw()
     return true;
 }
 
-// Main game logic
+// Display game statistics
+void displayStatistics()
+{
+    cout << "\n===== GAME STATISTICS =====\n";
+    cout << "Total games played: " << gamesPlayed << endl;
+    cout << "Player X wins: " << playerXWins << endl;
+    cout << "Player O wins: " << playerOWins << endl;
+    cout << "Number of draws: " << draws << endl;
+    cout << "===========================\n";
+}
+
+// Main game function
 void playGame()
 {
     char currentPlayer = 'X';
 
     initializeBoard();
+
+    // Increase total games played
+    gamesPlayed++;
 
     cout << "\n===== TIC-TAC-TOE GAME =====\n";
 
@@ -153,12 +178,27 @@ void playGame()
         {
             cout << "Congratulations! Player "
                  << currentPlayer << " wins!\n";
+
+            // Update winner statistics
+            if (currentPlayer == 'X')
+            {
+                playerXWins++;
+            }
+            else
+            {
+                playerOWins++;
+            }
+
             break;
         }
 
         if (checkDraw())
         {
             cout << "The game is a DRAW!\n";
+
+            // Update draw statistics
+            draws++;
+
             break;
         }
 
