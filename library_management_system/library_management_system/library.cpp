@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
 using namespace std;
 
 // GENRE
@@ -57,6 +58,11 @@ public:
 
     void checkIn() {
         checked_out = false;
+    }
+
+    // Restore book status from file
+    void setCheckedOut(bool status) {
+        checked_out = status;
     }
 
     bool operator==(Book b) {
@@ -140,19 +146,157 @@ private:
 
 public:
 
-    // Add book
+    // LOAD BOOKS FROM FILE
+    void loadBooks() {
+        ifstream file("books.txt");
+
+        if (!file) {
+            cout << "Books file not found. Creating a new one.\n";
+            ofstream newFile("books.txt");
+            newFile.close();
+            return;
+        }
+
+        string isbn, title, author;
+        int year, g, status;
+
+        while (getline(file, isbn, '|')) {
+
+            if (!getline(file, title, '|')) break;
+            if (!getline(file, author, '|')) break;
+            if (!(file >> year)) break;
+            file.ignore();
+
+            if (!(file >> g)) break;
+            file.ignore();
+
+            if (!(file >> status)) break;
+            file.ignore();
+
+            if (g < 0 || g > 4 || (status != 0 && status != 1)) {
+                cout << "Invalid book record skipped.\n";
+                continue;
+            }
+
+            Book b(isbn, title, author, year, (Genre)g);
+            b.setCheckedOut(status);
+
+            books.push_back(b);
+        }
+
+        file.close();
+        cout << books.size() << " book(s) loaded successfully.\n";
+    }
+
+
+    // LOAD PATRONS FROM FILE
+    void loadPatrons() {
+        ifstream file("patrons.txt");
+
+        if (!file) {
+            cout << "Patrons file not found. Creating a new one.\n";
+            ofstream newFile("patrons.txt");
+            newFile.close();
+            return;
+        }
+
+        string username, card;
+        int fees;
+
+        while (getline(file, username, '|')) {
+
+            if (!getline(file, card, '|')) break;
+            if (!(file >> fees)) break;
+            file.ignore();
+
+            if (fees < 0) {
+                cout << "Invalid patron record skipped.\n";
+                continue;
+            }
+
+            Patron p(username, card, fees);
+            patrons.push_back(p);
+        }
+
+        file.close();
+        cout << patrons.size() << " patron(s) loaded successfully.\n";
+    }
+
+
+    // SAVE BOOKS TO FILE
+    void saveBooks() {
+        ofstream file("books.txt");
+
+        if (!file) {
+            cout << "Error saving books.\n";
+            return;
+        }
+
+        for (int i = 0; i < books.size(); i++) {
+            file << books[i].getISBN() << "|"
+                 << books[i].getTitle() << "|"
+                 << books[i].getAuthor() << "|"
+                 << books[i].getCopyrightDate() << "|"
+                 << books[i].getGenre() << "|"
+                 << books[i].isCheckedOut() << endl;
+        }
+
+        file.close();
+    }
+
+
+    // SAVE PATRONS TO FILE
+    void savePatrons() {
+        ofstream file("patrons.txt");
+
+        if (!file) {
+            cout << "Error saving patrons.\n";
+            return;
+        }
+
+        for (int i = 0; i < patrons.size(); i++) {
+            file << patrons[i].getUsername() << "|"
+                 << patrons[i].getCardNumber() << "|"
+                 << patrons[i].getOwedFees() << endl;
+        }
+
+        file.close();
+    }
+
+
+    // ADD BOOK
     void addBook(Book b) {
+        for (int i = 0; i < books.size(); i++) {
+            if (books[i].getISBN() == b.getISBN()) {
+                cout << "Error: A book with this ISBN already exists.\n";
+                return;
+            }
+        }
+
         books.push_back(b);
+        saveBooks();
+
         cout << "Book added successfully.\n";
     }
 
-    // Add patron
+
+    // ADD PATRON
     void addPatron(Patron p) {
+        for (int i = 0; i < patrons.size(); i++) {
+            if (patrons[i].getCardNumber() == p.getCardNumber()) {
+                cout << "Error: This card number is already registered.\n";
+                return;
+            }
+        }
+
         patrons.push_back(p);
+        savePatrons();
+
         cout << "Patron added successfully.\n";
     }
 
-    // Display all books
+
+    // DISPLAY ALL BOOKS
     void displayBooks() {
         if (books.empty()) {
             cout << "No books available.\n";
@@ -171,7 +315,8 @@ public:
         }
     }
 
-    // Display all patrons
+
+    // DISPLAY ALL PATRONS
     void displayPatrons() {
         if (patrons.empty()) {
             cout << "No patrons registered.\n";
@@ -185,7 +330,8 @@ public:
         }
     }
 
-    // Check out book
+
+    // CHECK OUT BOOK
     void borrowBook(string isbn, string card, string date) {
 
         int bookIndex = -1;
@@ -236,10 +382,13 @@ public:
 
         transactions.push_back(t);
 
+        saveBooks();
+
         cout << "Book borrowed successfully.\n";
     }
 
-    // Check in book
+
+    // CHECK IN BOOK
     void returnBook(string isbn, string card, string date) {
 
         int bookIndex = -1;
@@ -276,14 +425,20 @@ public:
 
         transactions.push_back(t);
 
+        saveBooks();
+
         cout << "Book returned successfully.\n";
     }
 
-    // Update patron fees
+
+    // UPDATE PATRON FEES
     void updateFees(string card, int fees) {
         for (int i = 0; i < patrons.size(); i++) {
             if (patrons[i].getCardNumber() == card) {
                 patrons[i].setFees(fees);
+
+                savePatrons();
+
                 cout << "Fees updated successfully.\n";
                 return;
             }
@@ -292,7 +447,8 @@ public:
         cout << "Patron not found.\n";
     }
 
-    // Return names of patrons who owe fees
+
+    // RETURN NAMES OF PATRONS WHO OWE FEES
     vector<string> patronsWithFees() {
         vector<string> names;
 
@@ -305,7 +461,8 @@ public:
         return names;
     }
 
-    // Display transactions
+
+    // DISPLAY TRANSACTIONS
     void displayTransactions() {
         if (transactions.empty()) {
             cout << "No transactions available.\n";
@@ -317,6 +474,7 @@ public:
             transactions[i].display();
         }
     }
+
 };
 
 
@@ -324,6 +482,13 @@ public:
 int main() {
 
     Library library;
+
+    // Load saved books and patrons when program starts
+    cout << "\nLoading library information...\n";
+
+    library.loadBooks();
+    library.loadPatrons();
+
     int choice;
 
     do {
@@ -478,3 +643,4 @@ int main() {
 
     return 0;
 }
+
